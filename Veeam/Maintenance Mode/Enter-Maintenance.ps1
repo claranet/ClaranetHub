@@ -27,7 +27,7 @@ $JOBS = Get-VBRJob
 
 # Save list of current jobs state (enabled/disabled)
 log "Dump Job states to file"
-$STATES = ( $JOBS | SELECT Id, Name, @{N="IsScheduleEnabled";E={$_.info.IsScheduleEnabled}} )
+$STATES = ( $JOBS | SELECT Id, Name, IsScheduleEnabled, @{N="IsSchedulable", E={$_.IsSchedulable()}} )
 $STATES | ConvertTo-Json | Out-File -FilePath $_FILE
 
 # Stop All running jobs
@@ -35,8 +35,9 @@ log "Stop all Jobs"
 if(-not $DryRun) { $JOBS | Stop-VBRJob -RunAsync }
 
 # Disable all Jobs
+# Jobs with non active automatic scheduler cannot be disabled
 log "Disable all jobs"
-if(-not $DryRun) { $JOBS | Disable-VBRJob | Out-Null }
+if(-not $DryRun) { $JOBS | ?{ $_.IsSchedulable() } | Disable-VBRJob | Out-Null }
 
 log "Finish"
 
