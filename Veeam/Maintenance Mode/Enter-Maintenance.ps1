@@ -27,7 +27,7 @@ $JOBS = Get-VBRJob
 
 # Save list of current jobs state (enabled/disabled)
 log "Dump Job states to file"
-$STATES = ( $JOBS | SELECT Id, Name, IsScheduleEnabled, @{N="IsSchedulable", E={$_.IsSchedulable()}} )
+$STATES = ( $JOBS | SELECT Id, Name, IsScheduleEnabled, @{N="IsSchedulable"; E={$_.IsSchedulable()}} )
 $STATES | ConvertTo-Json | Out-File -FilePath $_FILE
 
 # Stop All running jobs
