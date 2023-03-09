@@ -18,6 +18,17 @@ It changes the Disk UUID using PowerShell and VirtualDiskManager and triggers a
 VM vMotion. Take Note that all VM/Host rules should be turned off during this
 changes.
 
+# Identify disks with duplicate UUIDs
+
+This command collects all Disks and group them by disk UUID
+```powershell
+Get-VM | Get-HardDisk ``
+  | Select @{N='VM';E={$_.Parent.Name}}, `
+           @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} ``
+  | Group-Object -Property Uuid | ?{ $_.Count -gt 1 } 
+```
+
+# get rid of duplicate UUID
 
 ```powershell
 # Collect Rule states of each cluster and save to json file and disable rules
@@ -38,6 +49,7 @@ Get-Content rules.json | ConvertFrom-Json | ?{ $_.Enabled } | %{
   Get-DrsVMHostRule -Cluster $_.Cluster -Name $_.Name | Set-DrsVMHostRule -Enabled:$True
 }
 ```
+
 
 # Thanks
 
