@@ -109,11 +109,20 @@ begin {
   $allDisks = Get-VM | Get-HardDisk
   $allDiskUUIDs = $allDisks.ExtensionData.Backing.Uuid
   # Collect duplicate UUIDs
-  $duplicateDiskUUIDs = ($allDiskUUIDs | Group-Object | ?{ $_.Count -gt 1}).Name
+  $duplicateDisks = $allDiskUUIDs | Group-Object | ?{ $_.Count -gt 1}
+  $duplicateDiskUUIDs = $duplicateDisks.Name
+
+  log -Level INFO "Found $($duplicateDisks.Length) duplicate UUIDs"
+  log -Level INFO "Found $(($duplicateDisks|Measure-Object -Sum Count).Sum) disks with duplicate UUIDs"
 }
 
 process {
   # This part wil lbe process for every VM on $VM input
+
+  if($VM | Get-Snapshot) {
+    log -Level ERROR "VM $($VM.Name) has Snapshot and connet be processed"
+    return
+  }
 
   # fetch VM disks which UUID are duplictaed
   $disksToWorkOn = $VM | Get-HardDisk | ?{ $_.ExtensionData.Backing.Uuid -in $duplicateDiskUUIDs }
@@ -142,8 +151,10 @@ process {
       # Set the new UUID to the disk
       $vdm.SetVirtualDiskUuid($disk.ExtensionData.Backing.FileName,$datacenter.Id, $newUuid)
     }
-    # Finally trigger a vMotion to the VM
-    Trigger-VMotion -VM $disk.Parent
   }
 
+  if($disksToWorkOn) {
+    # Finally trigger a vMotion to the VM
+    Trigger-VMotion -VM $VM
+  }
 }
