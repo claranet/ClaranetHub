@@ -22,9 +22,9 @@ changes.
 
 This command collects all Disks and group them by disk UUID
 ```powershell
-Get-VM | Get-HardDisk ``
+Get-VM | Get-HardDisk `
   | Select @{N='VM';E={$_.Parent.Name}}, `
-           @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} ``
+           @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} `
   | Group-Object -Property Uuid | ?{ $_.Count -gt 1 } 
 ```
 
