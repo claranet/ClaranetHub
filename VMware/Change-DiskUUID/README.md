@@ -25,7 +25,7 @@ This command collects all Disks and group them by disk UUID
 Get-VM | Get-HardDisk `
   | Select @{N='VM';E={$_.Parent.Name}}, `
            @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} `
-  | Group-Object -Property Uuid | ?{ $_.Count -gt 1 } 
+  | Group-Object -Property Uuid | ?{ $_.Count -gt 1 }
 ```
 
 # get rid of duplicate UUID
@@ -54,3 +54,9 @@ Get-Content rules.json | ConvertFrom-Json | ?{ $_.Enabled } | %{
 # Thanks
 
 Thanks to Milla - https://blog.milla-online.de/duplicate-disk-uuids-and-how-to-get-rid-of-it-hopefully
+
+# Changelog
+
+* 09.03.2023 - Only trigger vMotion one time for VM if a VM has multiple disks with multiple UUID
+* 09.03.2023 - Skip VM from Process if VM has Snapshots. Change of DiskUUI wont work here
+* 10.03.2023 - Improve Logging - Write logs to file and dump duplicate disks to json
