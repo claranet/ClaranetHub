@@ -51,16 +51,26 @@ param(
 begin {
   enum LogLevel { TRACE; DEBUG; INFO; WARNING; ERROR }
   Function log() {
-    param( [string]$Message, [LogLevel]$Level )
-    $minLevel = [LogLevel]$LogLevel
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]$Message,
+        [LogLevel]$Level = [LogLevel]"INFO",
+        [switch]$NoConsoleOut
+    )
+    $minLevel = [LogLevel]($LogLevel ? $LogLevel  : "INFO")
 
     if([int]$Level -lt [int]$minLevel) { return }
     $date = Get-Date -Format "yyyy-MM-dd hh:mm:ss"
     $logLine = "[$($Level)] $($date) - $Message"
+
+    $logFile = ($PSCommandPath | Split-Path -LeafBase).ToLower() + ".log"
+    $logLine | Out-File -FilePath "$($PSScriptRoot)/$($logFile)" -Append
+    if($NoConsoleOut) { return }
+
     if($Level -eq [LogLevel]"ERROR") {
-      Write-Host -ForegroundColor Red $logLine
+        Write-Host -ForegroundColor Red $logLine
     } else {
-      Write-Host $logLine
+        Write-Host $logLine
     }
   }
   
@@ -100,6 +110,8 @@ begin {
     }
   }
 
+  log -NoConsoleOut "## Script Started ############"
+
   # get the VirtualDiskManager
   $vdm = Get-View -Id (Get-View ServiceInstance).Content.VirtualDiskManager
 
@@ -108,12 +120,20 @@ begin {
   log -Level INFO "Collect all Disks (will take a while)"
   $allDisks = Get-VM | Get-HardDisk
   $allDiskUUIDs = $allDisks.ExtensionData.Backing.Uuid
-  # Collect duplicate UUIDs
-  $duplicateDisks = $allDiskUUIDs | Group-Object | ?{ $_.Count -gt 1}
-  $duplicateDiskUUIDs = $duplicateDisks.Name
+  $duplicateDiskGroups = $allDisks
+                            | Select @{N='VM';E={$_.Parent.Name}}, `
+                                     @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} `
+                            | Group-Object -Property Uuid | ?{ $_.Count -gt 1 }
 
-  log -Level INFO "Found $($duplicateDisks.Length) duplicate UUIDs"
-  log -Level INFO "Found $(($duplicateDisks|Measure-Object -Sum Count).Sum) disks with duplicate UUIDs"
+  $duplicateDiskGroups | ConvertTo-Json | Out-File -FilePath $PSScriptRoot/duplicate-disks_$(Get-Date -Format "yyyyMMddhhmmss").json
+
+  log "Overview"
+  $duplicateDiskGroups | FT -AutoSize | Out-String | log
+
+  $duplicateDiskUUIDs = $duplicateDiskGroups.Name
+
+  log -Level INFO "Found $($duplicateDiskGroups.Length) duplicate UUIDs"
+  log -Level INFO "Found $(($duplicateDiskGroups|Measure-Object -Sum Count).Sum) disks with duplicate UUIDs"
 }
 
 process {
@@ -157,4 +177,8 @@ process {
     # Finally trigger a vMotion to the VM
     Trigger-VMotion -VM $VM
   }
+}
+
+end {
+  log -NoConsoleOut "## Script Finished ############"
 }
