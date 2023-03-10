@@ -60,3 +60,5 @@ Thanks to Milla - https://blog.milla-online.de/duplicate-disk-uuids-and-how-to-g
 * 09.03.2023 - Only trigger vMotion one time for VM if a VM has multiple disks with multiple UUID
 * 09.03.2023 - Skip VM from Process if VM has Snapshots. Change of DiskUUI wont work here
 * 10.03.2023 - Improve Logging - Write logs to file and dump duplicate disks to json
+* 10.03.2023 - Improve Logging - Write details if set new uuid did not work
+* 10.03.2023 - Skip VMs with linked HardDisks

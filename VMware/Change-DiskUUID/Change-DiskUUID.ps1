@@ -54,24 +54,25 @@ begin {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [string]$Message,
-        [LogLevel]$Level = [LogLevel]"INFO",
-        [switch]$NoConsoleOut
+        [LogLevel]$Level = [LogLevel]::INFO,
+        [switch]$Quiet
     )
-    $minLevel = [LogLevel]($LogLevel ? $LogLevel  : "INFO")
-
+    $minLevel = [LogLevel]($LogLevel ? $LogLevel  : [LogLevel]::INFO)
     if([int]$Level -lt [int]$minLevel) { return }
+
     $date = Get-Date -Format "yyyy-MM-dd hh:mm:ss"
     $logLine = "[$($Level)] $($date) - $Message"
 
     $logFile = ($PSCommandPath | Split-Path -LeafBase).ToLower() + ".log"
     $logLine | Out-File -FilePath "$($PSScriptRoot)/$($logFile)" -Append
-    if($NoConsoleOut) { return }
+    if($Quiet) { return }
 
-    if($Level -eq [LogLevel]"ERROR") {
-        Write-Host -ForegroundColor Red $logLine
-    } else {
-        Write-Host $logLine
+    $fgColor = "white"
+    switch($Level) {
+      ERROR { $fgColor = "red"; break }
+      WARNING { $fgColor = "yellow"; break }
     }
+    Write-Host -ForegroundColor $fgColor $logLine
   }
   
   Function Generate-DiskUUID() {
@@ -110,7 +111,7 @@ begin {
     }
   }
 
-  log -NoConsoleOut "## Script Started ############"
+  log -Quiet "## Script Started ############"
 
   # get the VirtualDiskManager
   $vdm = Get-View -Id (Get-View ServiceInstance).Content.VirtualDiskManager
@@ -140,12 +141,18 @@ process {
   # This part wil lbe process for every VM on $VM input
 
   if($VM | Get-Snapshot) {
-    log -Level ERROR "VM $($VM.Name) has Snapshot and connet be processed"
+    log -Level WARNING "VM $($VM.Name) has Snapshot and connet be processed"
     return
   }
 
   # fetch VM disks which UUID are duplictaed
-  $disksToWorkOn = $VM | Get-HardDisk | ?{ $_.ExtensionData.Backing.Uuid -in $duplicateDiskUUIDs }
+  $disksToWorkOn = $VM | Get-HardDisk `
+                       | ?{ $_.ExtensionData.Backing.Uuid -in $duplicateDiskUUIDs }
+
+  if($disksToWorkOn.ExtensionData.Backing.Parent) {
+    log -Level WARNING "VM $($VM.Name) has Linked HardDisk - SKIP VM"
+    return
+  }
 
   ForEach($disk in $disksToWorkOn) {
     $datacenter = $disk.Parent | Get-Datacenter
@@ -169,7 +176,24 @@ process {
 
     if(-not $TestRun) {
       # Set the new UUID to the disk
-      $vdm.SetVirtualDiskUuid($disk.ExtensionData.Backing.FileName,$datacenter.Id, $newUuid)
+      try {
+        $vdm.SetVirtualDiskUuid($disk.ExtensionData.Backing.FileName,$datacenter.Id, $newUuid)
+      } catch {
+        log -Level ERROR @"
+Failed to Set UUID for VM $($VM.Name) - Parameters:
+Old UUID: $($oldUuid)
+VM: $($VM.Name)
+Filename: $($disk.ExtensionData.Backing.FileName)
+Datacenter ID: $($datacenter.Id)
+Datacenter: $($datacenter.Name)
+New UUID: $($newUuid)
+
+Disk Details:
+$($disk.ExtensionData.Backing | Out-String)
+"@
+        log -Level ERROR $_.ToString()
+        return
+      }
     }
   }
 
@@ -180,5 +204,5 @@ process {
 }
 
 end {
-  log -NoConsoleOut "## Script Finished ############"
+  log -Quiet "## Script Finished ############"
 }
