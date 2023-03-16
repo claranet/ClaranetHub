@@ -57,7 +57,7 @@ begin {
         [LogLevel]$Level = [LogLevel]::INFO,
         [switch]$Quiet
     )
-    $minLevel = [LogLevel]($LogLevel ? $LogLevel  : [LogLevel]::INFO)
+    $minLevel = if($LogLevel) {[LogLevel]$LogLevel} else { [LogLevel]::INFO }
     if([int]$Level -lt [int]$minLevel) { return }
 
     $date = Get-Date -Format "yyyy-MM-dd hh:mm:ss"
@@ -121,7 +121,7 @@ begin {
   log -Level INFO "Collect all Disks (will take a while)"
   $allDisks = Get-VM | Get-HardDisk
   $allDiskUUIDs = $allDisks.ExtensionData.Backing.Uuid
-  $duplicateDiskGroups = $allDisks
+  $duplicateDiskGroups = $allDisks `
                             | Select @{N='VM';E={$_.Parent.Name}}, `
                                      @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} `
                             | Group-Object -Property Uuid | ?{ $_.Count -gt 1 }
