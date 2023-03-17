@@ -63,7 +63,7 @@ begin {
     $date = Get-Date -Format "yyyy-MM-dd hh:mm:ss"
     $logLine = "[$($Level)] $($date) - $Message"
 
-    $logFile = ($PSCommandPath | Split-Path -LeafBase).ToLower() + ".log"
+    $logFile = [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath).ToLower() + ".log"
     $logLine | Out-File -FilePath "$($PSScriptRoot)/$($logFile)" -Append
     if($Quiet) { return }
 
