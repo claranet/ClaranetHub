@@ -23,8 +23,9 @@ changes.
 This command collects all Disks and group them by disk UUID
 ```powershell
 Get-VM | Get-HardDisk `
-  | Select @{N='VM';E={$_.Parent.Name}}, `
-           @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}} `
+  | Select @{N='Disk';E={$_}}, `
+           @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}}, `
+           @{N='ParentUuid';E={$_.ExtensionData.Backing.Parent.Uuid}} `
   | Group-Object -Property Uuid | ?{ $_.Count -gt 1 }
 ```
 
@@ -62,3 +63,13 @@ Thanks to Milla - https://blog.milla-online.de/duplicate-disk-uuids-and-how-to-g
 * 10.03.2023 - Improve Logging - Write logs to file and dump duplicate disks to json
 * 10.03.2023 - Improve Logging - Write details if set new uuid did not work
 * 10.03.2023 - Skip VMs with linked HardDisks
+
+
+
+```powershell
+$VM = Get-VM "<my vm>"
+$Snapshot = $VM | New-Snapshot -Name "BASE"
+New-VM -Name "$($VM.Name) - Linked Clone" -VM $VM -VMHost $VM.VMHost -LinkedClone -ReferenceSnapshot $Snapshot
+ 
+Get-VM -Name "$($VM.Name)*"| Get-HardDisk | Select @{N='Name';E={$_.Parent.Name}}, @{N='Uuid';E={$_.ExtensionData.Backing.Uuid}}
+```
