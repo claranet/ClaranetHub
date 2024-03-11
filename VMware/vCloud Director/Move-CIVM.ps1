@@ -30,7 +30,7 @@ param(
   [Parameter(Mandatory)]
   [VMware.VimAutomation.Cloud.Types.V1.CIVApp] $TargetVApp,
   [Parameter(Mandatory)]
-  [ValidateScript( {$_.Split("=").Length -eq 2}, ErrorMessage = "{0:d} is not valid." )]
+  [ValidateScript( {$_.Split("=").Length -eq 2} )]
   [string[]]$NetworkMap,
   [Parameter()]
   [switch]$RunAsync
