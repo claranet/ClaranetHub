@@ -165,8 +165,8 @@ END {
 
     try {
       $HEADER = @{
-        "Accept" = "application/*+xml;version=38.0"
-        "Content-Type" = "application/*+xml"
+        "Accept" = "application/*+xml;version=39.0.0-alpha"
+        "Content-Type" = "application/vnd.vmware.vcloud.recomposeVAppParams+xml;charset=utf-8"
         "Authorization" = $global:DefaultCIServers.SessionSecret
       }
       $res = Invoke-WebRequest -Method Post -Headers $HEADER -Body $PayLoad $url
