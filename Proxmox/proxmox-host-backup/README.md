@@ -31,7 +31,6 @@ PBS_STORAGE=<CHANGE ME>
 EOF
 ```
 
-
 ## Install static linked binaries
 
 ```bash
@@ -89,3 +88,17 @@ systemctl daemon-reload
 systemctl enable proxmox-host-backup.timer proxmox-host-backup.service
 systemctl start proxmox-host-backup.timer
 ```
+
+## Exclude directories from Backup
+
+See ["Excluding Files/Directories from a Backup"](https://pbs.proxmox.com/docs/backup-client.html#excluding-files-directories-from-a-backup) in the official documentation.
+In short words: Place a file named `.pxarexclude` to the root of the mounted device eg. `/srv/.pxarexclude` and list all directories there you want to exclude from backup.
+
+For examle:
+__/srv/.pxarexclude__ 
+```
+dockerd/images/
+tmp/
+```
+
+This will excude the directories `/srv/dockerd/images/` and `/srv/tmp/` from backup!
